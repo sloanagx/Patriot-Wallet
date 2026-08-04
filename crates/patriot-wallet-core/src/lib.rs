@@ -1,0 +1,128 @@
+//! Security-focused, chain-agnostic wallet domain logic.
+//!
+//! This crate must never log, expose, or silently transmit secret material.
+
+#![forbid(unsafe_code)]
+
+pub const PRODUCT_NAME: &str = "Patriot Wallet";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Network {
+    Mainnet,
+    Testnet,
+}
+
+impl Network {
+    pub const fn is_mainnet(self) -> bool {
+        matches!(self, Self::Mainnet)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Blockchain {
+    Bitcoin,
+    Ethereum,
+    Solana,
+    Dogecoin,
+    Monero,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Asset {
+    Bitcoin,
+    Ethereum,
+    Solana,
+    Dogecoin,
+    TetherUsd,
+    UsdCoin,
+    Monero,
+}
+
+impl Asset {
+    pub const fn ticker(self) -> &'static str {
+        match self {
+            Self::Bitcoin => "BTC",
+            Self::Ethereum => "ETH",
+            Self::Solana => "SOL",
+            Self::Dogecoin => "DOGE",
+            Self::TetherUsd => "USDT",
+            Self::UsdCoin => "USDC",
+            Self::Monero => "XMR",
+        }
+    }
+
+    pub const fn is_supported_on(self, chain: Blockchain) -> bool {
+        matches!(
+            (self, chain),
+            (Self::Bitcoin, Blockchain::Bitcoin)
+                | (Self::Ethereum, Blockchain::Ethereum)
+                | (Self::Solana, Blockchain::Solana)
+                | (Self::Dogecoin, Blockchain::Dogecoin)
+                | (Self::Monero, Blockchain::Monero)
+                | (Self::TetherUsd, Blockchain::Ethereum | Blockchain::Solana)
+                | (Self::UsdCoin, Blockchain::Ethereum | Blockchain::Solana)
+        )
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AssetId {
+    pub asset: Asset,
+    pub chain: Blockchain,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WalletError {
+    UnsupportedAssetOnChain { asset: Asset, chain: Blockchain },
+}
+
+impl AssetId {
+    pub const fn new(asset: Asset, chain: Blockchain) -> Result<Self, WalletError> {
+        if asset.is_supported_on(chain) {
+            Ok(Self { asset, chain })
+        } else {
+            Err(WalletError::UnsupportedAssetOnChain { asset, chain })
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mainnet_is_identified_correctly() {
+        assert!(Network::Mainnet.is_mainnet());
+        assert!(!Network::Testnet.is_mainnet());
+    }
+
+    #[test]
+    fn every_requested_asset_has_its_expected_ticker() {
+        assert_eq!(Asset::Bitcoin.ticker(), "BTC");
+        assert_eq!(Asset::Ethereum.ticker(), "ETH");
+        assert_eq!(Asset::Solana.ticker(), "SOL");
+        assert_eq!(Asset::Dogecoin.ticker(), "DOGE");
+        assert_eq!(Asset::TetherUsd.ticker(), "USDT");
+        assert_eq!(Asset::UsdCoin.ticker(), "USDC");
+        assert_eq!(Asset::Monero.ticker(), "XMR");
+    }
+
+    #[test]
+    fn usdt_is_supported_on_ethereum_and_solana() {
+        assert!(AssetId::new(Asset::TetherUsd, Blockchain::Ethereum).is_ok());
+        assert!(AssetId::new(Asset::TetherUsd, Blockchain::Solana).is_ok());
+    }
+
+    #[test]
+    fn bitcoin_cannot_be_created_on_ethereum() {
+        let result = AssetId::new(Asset::Bitcoin, Blockchain::Ethereum);
+
+        assert_eq!(
+            result,
+            Err(WalletError::UnsupportedAssetOnChain {
+                asset: Asset::Bitcoin,
+                chain: Blockchain::Ethereum,
+            })
+        );
+    }
+}
