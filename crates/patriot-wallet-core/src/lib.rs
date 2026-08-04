@@ -3,7 +3,9 @@
 //! This crate must never log, expose, or silently transmit secret material.
 
 #![forbid(unsafe_code)]
+mod address;
 
+pub use address::{AddressValidator, RecipientAddress};
 pub const PRODUCT_NAME: &str = "Patriot Wallet";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -74,6 +76,9 @@ pub struct AssetId {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WalletError {
     UnsupportedAssetOnChain { asset: Asset, chain: Blockchain },
+    EmptyAddress,
+    AddressContainsOuterWhitespace,
+    InvalidAddress,
 }
 
 impl AssetId {
