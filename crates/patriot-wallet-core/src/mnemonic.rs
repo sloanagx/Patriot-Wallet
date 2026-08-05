@@ -4,6 +4,8 @@ use bip39::Mnemonic;
 
 use crate::WalletError;
 
+use zeroize::Zeroizing;
+
 /// A BIP-39 recovery phrase.
 ///
 /// This type intentionally does not implement `Display` or expose its words.
@@ -16,6 +18,13 @@ impl RecoveryPhrase {
         Mnemonic::generate(24)
             .map(Self)
             .map_err(|_| WalletError::MnemonicGenerationFailed)
+    }
+
+    /// Derives seed material without a BIP-39 passphrase.
+    ///
+    /// Optional passphrase support will be added only with secure GUI input.
+    pub fn derive_seed(&self) -> SeedMaterial {
+        SeedMaterial(Zeroizing::new(self.0.to_seed("")))
     }
 
     /// Imports and checksum-validates an existing recovery phrase.
@@ -37,6 +46,23 @@ impl RecoveryPhrase {
 impl fmt::Debug for RecoveryPhrase {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str("RecoveryPhrase([REDACTED])")
+    }
+}
+
+/// Derived BIP-39 seed material held in zeroizing memory.
+///
+/// It intentionally has no method that exposes its bytes publicly.
+pub struct SeedMaterial(Zeroizing<[u8; 64]>);
+
+impl SeedMaterial {
+    pub const fn byte_len(&self) -> usize {
+        64
+    }
+}
+
+impl fmt::Debug for SeedMaterial {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("SeedMaterial([REDACTED])")
     }
 }
 
@@ -63,5 +89,21 @@ mod tests {
         let phrase = RecoveryPhrase::generate_24().expect("generation should succeed");
 
         assert_eq!(format!("{phrase:?}"), "RecoveryPhrase([REDACTED])");
+    }
+
+    #[test]
+    fn derived_seed_has_the_bip39_length() {
+        let phrase = RecoveryPhrase::generate_24().expect("generation should succeed");
+        let seed = phrase.derive_seed();
+
+        assert_eq!(seed.byte_len(), 64);
+    }
+
+    #[test]
+    fn seed_debug_output_is_redacted() {
+        let phrase = RecoveryPhrase::generate_24().expect("generation should succeed");
+        let seed = phrase.derive_seed();
+
+        assert_eq!(format!("{seed:?}"), "SeedMaterial([REDACTED])");
     }
 }

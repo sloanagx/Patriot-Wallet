@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 bip39 = { version = "2.2.2", features = ["rand", "zeroize"] }
 bitcoin = "0.32.8"
+zeroize = "1.9.0"
