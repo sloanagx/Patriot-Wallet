@@ -31,6 +31,7 @@ impl AddressValidator for BitcoinAddressValidator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::RecipientAddress;
 
     const VALID_TESTNET_ADDRESS: &str =
         "tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7";
@@ -39,6 +40,32 @@ mod tests {
         AssetId::new(Asset::Bitcoin, Blockchain::Bitcoin).expect("valid Bitcoin asset")
     }
 
+    #[test]
+
+    fn recipient_address_accepts_a_valid_bitcoin_testnet_address() {
+        let recipient = RecipientAddress::parse(
+            bitcoin_asset(),
+            Network::Testnet,
+            VALID_TESTNET_ADDRESS,
+            &BitcoinAddressValidator,
+        )
+        .expect("testnet address should validate");
+
+        assert_eq!(recipient.network(), Network::Testnet);
+        assert_eq!(recipient.as_str(), VALID_TESTNET_ADDRESS);
+    }
+
+    #[test]
+    fn recipient_address_rejects_a_bitcoin_network_mismatch() {
+        let result = RecipientAddress::parse(
+            bitcoin_asset(),
+            Network::Mainnet,
+            VALID_TESTNET_ADDRESS,
+            &BitcoinAddressValidator,
+        );
+
+        assert_eq!(result, Err(WalletError::AddressNetworkMismatch));
+    }
     #[test]
     fn accepts_a_valid_bitcoin_testnet_address() {
         let result = BitcoinAddressValidator.validate(
