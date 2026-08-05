@@ -4,8 +4,10 @@
 
 #![forbid(unsafe_code)]
 mod address;
+mod bitcoin;
 
 pub use address::{AddressValidator, RecipientAddress};
+pub use bitcoin::BitcoinAddressValidator;
 pub const PRODUCT_NAME: &str = "Patriot Wallet";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -79,6 +81,7 @@ pub enum WalletError {
     EmptyAddress,
     AddressContainsOuterWhitespace,
     InvalidAddress,
+    AddressNetworkMismatch,
 }
 
 impl AssetId {
