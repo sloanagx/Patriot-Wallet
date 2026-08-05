@@ -5,9 +5,11 @@
 #![forbid(unsafe_code)]
 mod address;
 mod bitcoin;
+mod mnemonic;
 
 pub use address::{AddressValidator, RecipientAddress};
 pub use bitcoin::BitcoinAddressValidator;
+pub use mnemonic::RecoveryPhrase;
 pub const PRODUCT_NAME: &str = "Patriot Wallet";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -82,6 +84,8 @@ pub enum WalletError {
     AddressContainsOuterWhitespace,
     InvalidAddress,
     AddressNetworkMismatch,
+    InvalidMnemonic,
+    MnemonicGenerationFailed,
 }
 
 impl AssetId {
