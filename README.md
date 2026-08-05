@@ -1,6 +1,6 @@
 # Patriot Wallet
 
-Patriot Wallet is a secure, cross-platform cryptocurrency wallet for Windows and macOS.
+Patriot Wallet is a secure, cross-platform cryptocurrency wallet for Windows and macOS. Built by Americans, for Americans.
 
 ## Supported Assets
 
