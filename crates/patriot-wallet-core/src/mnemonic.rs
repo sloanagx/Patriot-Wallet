@@ -52,6 +52,10 @@ impl fmt::Debug for RecoveryPhrase {
 /// Derived BIP-39 seed material held in zeroizing memory.
 ///
 /// It intentionally has no method that exposes its bytes publicly.
+///
+/// The backing field is kept intentionally so the zeroizing buffer is retained
+/// and securely cleared on drop; it is not read directly elsewhere.
+#[allow(dead_code)]
 pub struct SeedMaterial(Zeroizing<[u8; 64]>);
 
 impl SeedMaterial {
