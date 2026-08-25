@@ -19,6 +19,7 @@ Patriot Wallet is a secure, cross-platform cryptocurrency wallet for Windows and
 - Secure key storage on Windows and macOS
 - Transaction history and balance tracking
 - Send and receive crypto with a clean interface
+- SHA-256 Encryption
 
 ## Platforms
 
@@ -38,4 +39,4 @@ Patriot Wallet is built with security in mind. Private keys are stored locally a
 
 ## License
 
-Use Patriot Wallet responsibly and follow local regulations when managing cryptocurrency.
+Use Patriot Wallet responsibly and follow local regulations when managing cryptocurrency. KYC is required for purchasing and exchanging cryptocurrency. 
