@@ -62,6 +62,10 @@ impl SeedMaterial {
     pub const fn byte_len(&self) -> usize {
         64
     }
+
+    pub(crate) fn with_bytes<T>(&self, operation: impl FnOnce(&[u8; 64]) -> T) -> T {
+        operation(&self.0)
+    }
 }
 
 impl fmt::Debug for SeedMaterial {
