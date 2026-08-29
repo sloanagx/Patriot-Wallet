@@ -3,20 +3,23 @@
 //! This crate must never log, expose, or silently transmit secret material.
 
 #![forbid(unsafe_code)]
+
+use serde::{Deserialize, Serialize};
+
 mod account;
 mod address;
 mod bitcoin;
 mod hd;
 mod mnemonic;
 
-pub use account::BitcoinReceiveAccount;
+pub use account::{BitcoinReceiveAccount, BitcoinReceiveAccountMetadata};
 pub use address::{AddressValidator, RecipientAddress};
 pub use bitcoin::BitcoinAddressValidator;
 pub use mnemonic::{RecoveryPhrase, SeedMaterial};
 pub const PRODUCT_NAME: &str = "Patriot Wallet";
 pub use hd::{BitcoinAccountXpub, BitcoinReceiveAddress, derive_bitcoin_bip84_account};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Network {
     Mainnet,
     Testnet,
@@ -92,6 +95,9 @@ pub enum WalletError {
     MnemonicGenerationFailed,
     KeyDerivationFailed,
     ReceiveAddressIndexExhausted,
+    InvalidWatchOnlyAccount,
+    WatchOnlyAccountNetworkMismatch,
+    UnsupportedMetadataVersion,
 }
 
 impl AssetId {

@@ -8,6 +8,8 @@ use bitcoin::{
 
 use crate::{Network, SeedMaterial, WalletError};
 
+use bitcoin::NetworkKind;
+
 /// Watch only Bitcoin BIP-84 account data
 ///
 /// This contains no private key, but is still privacy sensitive because it
@@ -65,6 +67,25 @@ impl BitcoinAccountXpub {
             index,
             value: BitcoinAddress::p2wpkh(&derived.to_pub(), bitcoin_network),
         })
+    }
+
+    pub(crate) fn import(encoded: &str, network: Network) -> Result<Self, WalletError> {
+        let xpub = Xpub::from_str(encoded).map_err(|_| WalletError::InvalidWatchOnlyAccount)?;
+
+        let expected_network = match network {
+            Network::Mainnet => NetworkKind::Main,
+            Network::Testnet => NetworkKind::Test,
+        };
+
+        if xpub.network != expected_network {
+            return Err(WalletError::WatchOnlyAccountNetworkMismatch);
+        }
+
+        Ok(Self { xpub, network })
+    }
+
+    pub(crate) const fn network(&self) -> Network {
+        self.network
     }
 }
 
