@@ -3,11 +3,13 @@
 //! This crate must never log, expose, or silently transmit secret material.
 
 #![forbid(unsafe_code)]
+mod account;
 mod address;
 mod bitcoin;
 mod hd;
 mod mnemonic;
 
+pub use account::BitcoinReceiveAccount;
 pub use address::{AddressValidator, RecipientAddress};
 pub use bitcoin::BitcoinAddressValidator;
 pub use mnemonic::{RecoveryPhrase, SeedMaterial};
@@ -89,6 +91,7 @@ pub enum WalletError {
     InvalidMnemonic,
     MnemonicGenerationFailed,
     KeyDerivationFailed,
+    ReceiveAddressIndexExhausted,
 }
 
 impl AssetId {
