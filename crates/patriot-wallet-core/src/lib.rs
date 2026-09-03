@@ -12,6 +12,7 @@ mod bitcoin;
 mod hd;
 mod mnemonic;
 mod money;
+mod send;
 mod storage;
 
 pub use account::{BitcoinReceiveAccount, BitcoinReceiveAccountMetadata};
@@ -21,6 +22,7 @@ pub use mnemonic::{RecoveryPhrase, SeedMaterial};
 pub use money::BitcoinAmount;
 pub const PRODUCT_NAME: &str = "Patriot Wallet";
 pub use hd::{BitcoinAccountXpub, BitcoinReceiveAddress, derive_bitcoin_bip84_account};
+pub use send::BitcoinSendIntent;
 pub use storage::PersistentBitcoinReceiveAccount;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -108,6 +110,9 @@ pub enum WalletError {
     InvalidStoredMetadata,
     AmountOverflow,
     InsufficientFunds,
+    RecipientAssetMismatch,
+    RecipientNetworkMismatch,
+    SendAmountMustBePositive,
 }
 
 impl AssetId {
