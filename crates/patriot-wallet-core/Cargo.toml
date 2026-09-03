@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+atomicwrites = "0.4.4"
 bip39 = { version = "2.2.2", features = ["rand", "zeroize"] }
 bitcoin = "0.32.8"
 serde = { version = "1.0.229", features = ["derive"] }
