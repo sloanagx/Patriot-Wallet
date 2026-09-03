@@ -11,12 +11,14 @@ mod address;
 mod bitcoin;
 mod hd;
 mod mnemonic;
+mod money;
 mod storage;
 
 pub use account::{BitcoinReceiveAccount, BitcoinReceiveAccountMetadata};
 pub use address::{AddressValidator, RecipientAddress};
 pub use bitcoin::BitcoinAddressValidator;
 pub use mnemonic::{RecoveryPhrase, SeedMaterial};
+pub use money::BitcoinAmount;
 pub const PRODUCT_NAME: &str = "Patriot Wallet";
 pub use hd::{BitcoinAccountXpub, BitcoinReceiveAddress, derive_bitcoin_bip84_account};
 pub use storage::PersistentBitcoinReceiveAccount;
@@ -104,6 +106,8 @@ pub enum WalletError {
     MetadataDeserializationFailed,
     MetadataStorageFailed,
     InvalidStoredMetadata,
+    AmountOverflow,
+    InsufficientFunds,
 }
 
 impl AssetId {
