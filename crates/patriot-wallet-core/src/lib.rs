@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 mod account;
 mod address;
+mod bdk;
 mod bitcoin;
 mod hd;
 mod mnemonic;
@@ -17,6 +18,7 @@ mod storage;
 
 pub use account::{BitcoinReceiveAccount, BitcoinReceiveAccountMetadata};
 pub use address::{AddressValidator, RecipientAddress};
+pub use bdk::BdkBitcoinWatchOnlyWallet;
 pub use bitcoin::BitcoinAddressValidator;
 pub use mnemonic::{RecoveryPhrase, SeedMaterial};
 pub use money::BitcoinAmount;
@@ -113,6 +115,7 @@ pub enum WalletError {
     RecipientAssetMismatch,
     RecipientNetworkMismatch,
     SendAmountMustBePositive,
+    BdkWalletCreationFailed,
 }
 
 impl AssetId {
