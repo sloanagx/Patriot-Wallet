@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 atomicwrites = "0.4.4"
+bdk_esplora = { version = "0.22.2", default-features = false, features = ["blocking-https-rustls"] }
 bdk_wallet = "3.1.0"
 bip39 = { version = "2.2.2", features = ["rand", "zeroize"] }
 bitcoin = "0.32.8"

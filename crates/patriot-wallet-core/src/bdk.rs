@@ -1,3 +1,4 @@
+use bdk_esplora::{EsploraExt, esplora_client};
 use bdk_wallet::{KeychainKind, Wallet};
 use bitcoin::Network as BitcoinNetwork;
 
@@ -8,6 +9,27 @@ use crate::{BitcoinAccountXpub, Network, WalletError};
 /// It cannot sign because no private key is supplied to BDK.
 pub struct BdkBitcoinWatchOnlyWallet {
     wallet: Wallet,
+    network: Network,
+}
+
+/// A user-configured Esplora endpoint for one Bitcoin network.
+///
+/// Synchronizing with an endpoint reveals derived addresses to its operator.
+pub struct BitcoinEsploraEndpoint {
+    network: Network,
+    base_url: String,
+}
+
+impl BitcoinEsploraEndpoint {
+    pub fn new(network: Network, base_url: impl Into<String>) -> Result<Self, WalletError> {
+        let base_url = base_url.into();
+
+        if base_url.trim() != base_url || !base_url.starts_with("https://") {
+            return Err(WalletError::InvalidEsploraEndpoint);
+        }
+
+        Ok(Self { network, base_url })
+    }
 }
 
 impl BdkBitcoinWatchOnlyWallet {
@@ -26,7 +48,10 @@ impl BdkBitcoinWatchOnlyWallet {
             .create_wallet_no_persist()
             .map_err(|_| WalletError::BdkWalletCreationFailed)?;
 
-        Ok(Self { wallet })
+        Ok(Self {
+            wallet,
+            network: account.network(),
+        })
     }
 
     /// Returns a deterministic receive address without marking it as used.
@@ -43,6 +68,40 @@ impl BdkBitcoinWatchOnlyWallet {
             .peek_address(KeychainKind::Internal, index)
             .address
             .to_string()
+    }
+
+    /// Performs a read-only full scan through the configured Esplora endpoint.
+    ///
+    /// Sync history is kept only in memory at this stage; it will be persisted
+    /// alongside BDK wallet state before transaction construction is enabled.
+    pub fn full_scan(
+        &mut self,
+        endpoint: &BitcoinEsploraEndpoint,
+        stop_gap: usize,
+    ) -> Result<(), WalletError> {
+        if endpoint.network != self.network {
+            return Err(WalletError::EsploraNetworkMismatch);
+        }
+
+        if stop_gap == 0 {
+            return Err(WalletError::InvalidSyncConfiguration);
+        }
+
+        let client = esplora_client::Builder::new(&endpoint.base_url).build_blocking();
+        let update = client
+            .full_scan(self.wallet.start_full_scan(), stop_gap, 5)
+            .map_err(|_| WalletError::EsploraSyncFailed)?;
+
+        self.wallet
+            .apply_update(update)
+            .map_err(|_| WalletError::EsploraSyncFailed)?;
+
+        Ok(())
+    }
+
+    /// Total confirmed and unconfirmed balance in satoshis from the latest scan.
+    pub fn balance_sats(&self) -> u64 {
+        self.wallet.balance().total().to_sat()
     }
 }
 
@@ -84,5 +143,27 @@ mod tests {
         assert!(receive.starts_with("tb1q"));
         assert!(change.starts_with("tb1q"));
         assert_ne!(receive, change);
+    }
+
+    #[test]
+    fn endpoint_requires_https_and_has_an_explicit_network() {
+        assert!(BitcoinEsploraEndpoint::new(Network::Testnet, "https://example.test/api").is_ok());
+        assert!(matches!(
+            BitcoinEsploraEndpoint::new(Network::Testnet, "http://example.test/api"),
+            Err(WalletError::InvalidEsploraEndpoint)
+        ));
+    }
+
+    #[test]
+    fn sync_rejects_an_endpoint_for_the_wrong_network_before_connecting() {
+        let account = testnet_account();
+        let mut bdk_wallet = BdkBitcoinWatchOnlyWallet::from_bip84_account(&account)
+            .expect("BDK wallet should create");
+        let endpoint = BitcoinEsploraEndpoint::new(Network::Mainnet, "https://example.test/api")
+            .expect("endpoint should be valid");
+
+        let result = bdk_wallet.full_scan(&endpoint, 20);
+
+        assert!(matches!(result, Err(WalletError::EsploraNetworkMismatch)));
     }
 }

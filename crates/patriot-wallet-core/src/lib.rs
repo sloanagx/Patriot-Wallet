@@ -18,7 +18,7 @@ mod storage;
 
 pub use account::{BitcoinReceiveAccount, BitcoinReceiveAccountMetadata};
 pub use address::{AddressValidator, RecipientAddress};
-pub use bdk::BdkBitcoinWatchOnlyWallet;
+pub use bdk::{BdkBitcoinWatchOnlyWallet, BitcoinEsploraEndpoint};
 pub use bitcoin::BitcoinAddressValidator;
 pub use mnemonic::{RecoveryPhrase, SeedMaterial};
 pub use money::BitcoinAmount;
@@ -116,6 +116,10 @@ pub enum WalletError {
     RecipientNetworkMismatch,
     SendAmountMustBePositive,
     BdkWalletCreationFailed,
+    InvalidEsploraEndpoint,
+    EsploraNetworkMismatch,
+    InvalidSyncConfiguration,
+    EsploraSyncFailed,
 }
 
 impl AssetId {
