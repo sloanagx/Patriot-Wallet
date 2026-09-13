@@ -15,6 +15,7 @@ mod mnemonic;
 mod money;
 mod send;
 mod storage;
+mod vault;
 
 pub use account::{BitcoinReceiveAccount, BitcoinReceiveAccountMetadata};
 pub use address::{AddressValidator, RecipientAddress};
@@ -26,6 +27,7 @@ pub const PRODUCT_NAME: &str = "Patriot Wallet";
 pub use hd::{BitcoinAccountXpub, BitcoinReceiveAddress, derive_bitcoin_bip84_account};
 pub use send::BitcoinSendIntent;
 pub use storage::PersistentBitcoinReceiveAccount;
+pub use vault::{OsKeychainRecoveryVault, RecoveryPhraseVault, WalletId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Network {
@@ -120,6 +122,10 @@ pub enum WalletError {
     EsploraNetworkMismatch,
     InvalidSyncConfiguration,
     EsploraSyncFailed,
+    InvalidWalletId,
+    KeychainAccessFailed,
+    RecoveryPhraseNotFound,
+    InvalidStoredRecoveryPhrase,
 }
 
 impl AssetId {

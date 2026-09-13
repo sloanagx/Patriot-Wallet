@@ -41,6 +41,12 @@ impl RecoveryPhrase {
     pub fn word_count(&self) -> usize {
         self.0.word_count()
     }
+
+    /// Makes the phrase available only to internal secret-storage or key-derivation code.
+    pub(crate) fn with_words<T>(&self, operation: impl FnOnce(&str) -> T) -> T {
+        let words = Zeroizing::new(self.0.to_string());
+        operation(&words)
+    }
 }
 
 impl fmt::Debug for RecoveryPhrase {
