@@ -36,7 +36,7 @@ fn run() -> Result<(), String> {
         .issue_next_receive_address()
         .map_err(|error| format!("{error:?}"))?;
 
-    println!("Tesnet wallet created.");
+    println!("Testnet wallet created.");
     println!("Wallet ID: {}", wallet.wallet_id().as_str());
     println!("First receive address: {}", first_address.encoded());
     println!("Recovery phrase: stored in the operating-system credential vault.");
