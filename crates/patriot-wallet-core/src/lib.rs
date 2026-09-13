@@ -14,6 +14,7 @@ mod hd;
 mod mnemonic;
 mod money;
 mod send;
+mod setup;
 mod storage;
 mod vault;
 
@@ -26,6 +27,7 @@ pub use money::BitcoinAmount;
 pub const PRODUCT_NAME: &str = "Patriot Wallet";
 pub use hd::{BitcoinAccountXpub, BitcoinReceiveAddress, derive_bitcoin_bip84_account};
 pub use send::BitcoinSendIntent;
+pub use setup::{TestnetWallet, create_testnet_wallet};
 pub use storage::PersistentBitcoinReceiveAccount;
 pub use vault::{OsKeychainRecoveryVault, RecoveryPhraseVault, WalletId};
 
