@@ -45,6 +45,12 @@ fn create_testnet_wallet_with_vault(
     metadata_path: impl Into<PathBuf>,
     vault: &impl RecoveryPhraseVault,
 ) -> Result<TestnetWallet, WalletError> {
+    let metadata_path = metadata_path.into();
+
+    if metadata_path.exists() {
+        return Err(WalletError::MetadataAlreadyExists);
+    }
+
     let phrase = RecoveryPhrase::generate_24()?;
     vault.store(&wallet_id, &phrase)?;
 

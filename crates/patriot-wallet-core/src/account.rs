@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{BitcoinAccountXpub, BitcoinReceiveAddress, Network, WalletError};
+use crate::{
+    BdkBitcoinWatchOnlyWallet, BitcoinAccountXpub, BitcoinReceiveAddress, Network, WalletError,
+};
 
 const METADATA_FORMAT_VERSION: u8 = 1;
 
@@ -31,6 +33,10 @@ impl BitcoinReceiveAccount {
 
     pub const fn next_receive_index(&self) -> u32 {
         self.next_receive_index
+    }
+
+    pub fn watch_only_wallet(&self) -> Result<BdkBitcoinWatchOnlyWallet, WalletError> {
+        BdkBitcoinWatchOnlyWallet::from_bip84_account(&self.account)
     }
 
     pub fn metadata(&self) -> BitcoinReceiveAccountMetadata {

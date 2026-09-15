@@ -10,6 +10,7 @@ mod account;
 mod address;
 mod bdk;
 mod bitcoin;
+mod ethereum;
 mod hd;
 mod mnemonic;
 mod money;
@@ -25,6 +26,7 @@ pub use bitcoin::BitcoinAddressValidator;
 pub use mnemonic::{RecoveryPhrase, SeedMaterial};
 pub use money::BitcoinAmount;
 pub const PRODUCT_NAME: &str = "Patriot Wallet";
+pub use ethereum::EthereumAddressValidator;
 pub use hd::{BitcoinAccountXpub, BitcoinReceiveAddress, derive_bitcoin_bip84_account};
 pub use send::BitcoinSendIntent;
 pub use setup::{TestnetWallet, create_testnet_wallet};
@@ -128,6 +130,8 @@ pub enum WalletError {
     KeychainAccessFailed,
     RecoveryPhraseNotFound,
     InvalidStoredRecoveryPhrase,
+    WalletAlreadyExists,
+    MetadataAlreadyExists,
 }
 
 impl AssetId {

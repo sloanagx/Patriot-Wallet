@@ -7,7 +7,8 @@ use std::{
 use atomicwrites::{AllowOverwrite, AtomicFile};
 
 use crate::{
-    BitcoinReceiveAccount, BitcoinReceiveAccountMetadata, BitcoinReceiveAddress, WalletError,
+    BdkBitcoinWatchOnlyWallet, BitcoinReceiveAccount, BitcoinReceiveAccountMetadata,
+    BitcoinReceiveAddress, WalletError,
 };
 
 /// Stores public Bitcoin receive-account metadata at one local file path.
@@ -73,6 +74,14 @@ impl PersistentBitcoinReceiveAccount {
         let account = store.load()?;
 
         Ok(Self { store, account })
+    }
+
+    pub fn metadata(&self) -> BitcoinReceiveAccountMetadata {
+        self.account.metadata()
+    }
+
+    pub fn watch_only_wallet(&self) -> Result<BdkBitcoinWatchOnlyWallet, WalletError> {
+        self.account.watch_only_wallet()
     }
 
     pub const fn next_receive_index(&self) -> u32 {
