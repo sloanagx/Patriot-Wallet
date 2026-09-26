@@ -16,6 +16,7 @@ mod mnemonic;
 mod money;
 mod send;
 mod setup;
+mod solana;
 mod storage;
 mod vault;
 
@@ -30,6 +31,7 @@ pub use ethereum::EthereumAddressValidator;
 pub use hd::{BitcoinAccountXpub, BitcoinReceiveAddress, derive_bitcoin_bip84_account};
 pub use send::BitcoinSendIntent;
 pub use setup::{TestnetWallet, create_testnet_wallet};
+pub use solana::SolanaAddressValidator;
 pub use storage::PersistentBitcoinReceiveAccount;
 pub use vault::{OsKeychainRecoveryVault, RecoveryPhraseVault, WalletId};
 

@@ -53,6 +53,15 @@ impl RecoveryPhraseVault for OsKeychainRecoveryVault {
     fn store(&self, wallet_id: &WalletId, phrase: &RecoveryPhrase) -> Result<(), WalletError> {
         let entry = Self::entry(wallet_id)?;
 
+        match entry.get_password() {
+            Ok(words) => {
+                drop(Zeroizing::new(words));
+                return Err(WalletError::WalletAlreadyExists);
+            }
+            Err(keyring::Error::NoEntry) => {}
+            Err(_) => return Err(WalletError::KeychainAccessFailed),
+        }
+
         phrase.with_words(|words| {
             entry
                 .set_password(words)
