@@ -12,7 +12,12 @@ impl AddressValidator for EthereumAddressValidator {
         _network: Network,
         address: &str,
     ) -> Result<(), WalletError> {
-        if asset.asset != Asset::Ethereum || asset.chain != Blockchain::Ethereum {
+        if asset.chain != Blockchain::Ethereum
+            || !matches!(
+                asset.asset,
+                Asset::Ethereum | Asset::TetherUsd | Asset::UsdCoin
+            )
+        {
             return Err(WalletError::InvalidAddress);
         }
 

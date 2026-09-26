@@ -10,7 +10,12 @@ impl AddressValidator for SolanaAddressValidator {
         _network: Network,
         address: &str,
     ) -> Result<(), WalletError> {
-        if asset.asset != Asset::Solana || asset.chain != Blockchain::Solana {
+        if asset.chain != Blockchain::Solana
+            || !matches!(
+                asset.asset,
+                Asset::Solana | Asset::TetherUsd | Asset::UsdCoin
+            )
+        {
             return Err(WalletError::InvalidAddress);
         }
 
