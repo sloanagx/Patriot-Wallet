@@ -6,11 +6,11 @@ Patriot Wallet is a secure, cross-platform cryptocurrency wallet for Windows and
 
 - Bitcoin (BTC)
 - Ethereum (ETH)
-- Dogecoin (DOGE)
+- Dogecoin (DOGE) [COMING SOON]
 - Solana (SOL)
 - Tether (USDT)
 - USD Coin (USDC)
-- Monero (XMR)
+- Monero (XMR) [COMING SOON]
 
 ## Features
 
@@ -20,10 +20,12 @@ Patriot Wallet is a secure, cross-platform cryptocurrency wallet for Windows and
 - Transaction history and balance tracking
 - Send and receive crypto with a clean interface
 - SHA-256 Encryption
+- Easy to use GUI [COMING SOON]
+- Very simple CLI
 
 ## Platforms
 
-- Windows
+- Windows [SOON]
 - macOS
 
 ## Getting Started
@@ -35,8 +37,8 @@ Patriot Wallet is a secure, cross-platform cryptocurrency wallet for Windows and
 
 ## Security
 
-Patriot Wallet is built with security in mind. Private keys are stored locally and never shared externally.
+Patriot Wallet is built with security in mind. Private keys are stored locally and never shared externally. Patriot Wallet only uses the internet to connect to the blockchain.
 
 ## License
 
-Use Patriot Wallet responsibly and follow local regulations when managing cryptocurrency. KYC is required for purchasing and exchanging cryptocurrency. 
+Use Patriot Wallet responsibly and follow local regulations when managing cryptocurrency. KYC is required for purchasing and exchanging cryptocurrency.
