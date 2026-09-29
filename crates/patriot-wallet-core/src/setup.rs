@@ -40,6 +40,39 @@ pub fn create_testnet_wallet(
     create_testnet_wallet_with_vault(wallet_id, metadata_path, &OsKeychainRecoveryVault)
 }
 
+/// Restores a testnet wallet after verifying its Keychain recovery phrase
+/// matches the saved public metadata.
+pub fn restore_testnet_wallet(
+    wallet_id: WalletId,
+    metadata_path: impl Into<PathBuf>,
+) -> Result<TestnetWallet, WalletError> {
+    restore_testnet_wallet_with_vault(wallet_id, metadata_path, &OsKeychainRecoveryVault)
+}
+
+fn restore_testnet_wallet_with_vault(
+    wallet_id: WalletId,
+    metadata_path: impl Into<PathBuf>,
+    vault: &impl RecoveryPhraseVault,
+) -> Result<TestnetWallet, WalletError> {
+    let receive_account = PersistentBitcoinReceiveAccount::load(metadata_path)?;
+
+    if receive_account.metadata().network != Network::Testnet {
+        return Err(WalletError::WalletNetworkMismatch);
+    }
+
+    let phrase = vault.load(&wallet_id)?;
+    let seed = phrase.derive_seed();
+    let expected_account = derive_bitcoin_bip84_account(&seed, Network::Testnet)?;
+
+    if receive_account.metadata().account_xpub != expected_account.encoded() {
+        return Err(WalletError::RecoveryPhraseDoesNotMatchMetadata);
+    }
+
+    Ok(TestnetWallet {
+        wallet_id,
+        receive_account,
+    })
+}
 fn create_testnet_wallet_with_vault(
     wallet_id: WalletId,
     metadata_path: impl Into<PathBuf>,

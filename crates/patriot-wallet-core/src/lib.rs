@@ -34,7 +34,7 @@ pub const PRODUCT_NAME: &str = "Patriot Wallet";
 pub use ethereum::EthereumAddressValidator;
 pub use hd::{BitcoinAccountXpub, BitcoinReceiveAddress, derive_bitcoin_bip84_account};
 pub use send::BitcoinSendIntent;
-pub use setup::{TestnetWallet, create_testnet_wallet};
+pub use setup::{TestnetWallet, create_testnet_wallet, restore_testnet_wallet};
 pub use solana::SolanaAddressValidator;
 pub use storage::PersistentBitcoinReceiveAccount;
 pub use vault::{OsKeychainRecoveryVault, RecoveryPhraseVault, WalletId};
@@ -138,6 +138,8 @@ pub enum WalletError {
     InvalidStoredRecoveryPhrase,
     WalletAlreadyExists,
     MetadataAlreadyExists,
+    WalletNetworkMismatch,
+    RecoveryPhraseDoesNotMatchMetadata,
 }
 
 impl AssetId {
