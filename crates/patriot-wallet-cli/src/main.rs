@@ -1,9 +1,9 @@
 use std::{env, path::PathBuf, process::ExitCode};
 
 use patriot_wallet_core::{
-    Asset, AssetId, BitcoinEsploraEndpoint, Blockchain, EthereumAddressValidator, Network,
-    PersistentBitcoinReceiveAccount, RecipientAddress, SolanaAddressValidator, WalletId,
-    create_testnet_wallet,
+    Asset, AssetId, BitcoinEsploraEndpoint, Blockchain, DogecoinAddressValidator,
+    EthereumAddressValidator, MoneroAddressValidator, Network, PersistentBitcoinReceiveAccount,
+    RecipientAddress, SolanaAddressValidator, WalletId, create_testnet_wallet,
 };
 
 fn main() -> ExitCode {
@@ -22,6 +22,8 @@ fn run() -> Result<(), String> {
 
     match command.as_str() {
         "validate-ethereum-address" => validate_ethereum_address(arguments),
+        "validate-dogecoin-address" => validate_dogecoin_address(arguments),
+        "validate-monero-address" => validate_monero_address(arguments),
         "validate-solana-address" => validate_solana_address(arguments),
         "new-receive-address" => new_receive_address(arguments),
         "create-testnet" => create_testnet(arguments),
@@ -111,6 +113,42 @@ fn validate_solana_address(mut arguments: impl Iterator<Item = String>) -> Resul
     Ok(())
 }
 
+fn validate_dogecoin_address(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
+    let address = arguments.next().ok_or_else(usage)?;
+
+    if arguments.next().is_some() {
+        return Err(usage());
+    }
+
+    let asset = AssetId::new(Asset::Dogecoin, Blockchain::Dogecoin)
+        .map_err(|error| format!("{error:?}"))?;
+
+    let recipient =
+        RecipientAddress::parse(asset, Network::Testnet, address, &DogecoinAddressValidator)
+            .map_err(|error| format!("{error:?}"))?;
+
+    println!("Valid Dogecoin testnet address: {}", recipient.as_str());
+    Ok(())
+}
+
+fn validate_monero_address(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
+    let address = arguments.next().ok_or_else(usage)?;
+
+    if arguments.next().is_some() {
+        return Err(usage());
+    }
+
+    let asset =
+        AssetId::new(Asset::Monero, Blockchain::Monero).map_err(|error| format!("{error:?}"))?;
+
+    let recipient =
+        RecipientAddress::parse(asset, Network::Testnet, address, &MoneroAddressValidator)
+            .map_err(|error| format!("{error:?}"))?;
+
+    println!("Valid Monero testnet address: {}", recipient.as_str());
+    Ok(())
+}
+
 fn testnet_balance(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
     let metadata_path = arguments.next().ok_or_else(usage)?;
 
@@ -169,6 +207,6 @@ fn wallet_info(mut arguments: impl Iterator<Item = String>) -> Result<(), String
 }
 
 fn usage() -> String {
-    "Usage:\n  patriot-wallet-cli create-testnet <wallet-id> <metadata-path>\n  patriot-wallet-cli wallet-info <metadata-path>\n  patriot-wallet-cli new-receive-address <metadata-path>\n  patriot-wallet-cli testnet-balance <metadata-path>\n  patriot-wallet-cli validate-ethereum-address <address>\n  patriot-wallet-cli validate-solana-address <address>"
+    "Usage:\n  patriot-wallet-cli create-testnet <wallet-id> <metadata-path>\n  patriot-wallet-cli wallet-info <metadata-path>\n  patriot-wallet-cli new-receive-address <metadata-path>\n  patriot-wallet-cli testnet-balance <metadata-path>\n  patriot-wallet-cli validate-ethereum-address <address>\n  patriot-wallet-cli validate-solana-address <address>\n  patriot-wallet-cli validate-dogecoin-address <address>\n  patriot-wallet-cli validate-monero-address <address>"
         .to_string()
 }
