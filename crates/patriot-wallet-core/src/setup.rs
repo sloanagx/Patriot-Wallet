@@ -135,6 +135,42 @@ mod tests {
         }
     }
 
+    const FIRST_TEST_PHRASE: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+
+    const SECOND_TEST_PHRASE: &str =
+        "legal winner thank year wave sausage worth useful legal winner thank yellow";
+
+    struct FixedRecoveryVault {
+        phrase: &'static str,
+    }
+
+    impl RecoveryPhraseVault for FixedRecoveryVault {
+        fn store(
+            &self,
+            _wallet_id: &WalletId,
+            _phrase: &RecoveryPhrase,
+        ) -> Result<(), WalletError> {
+            Err(WalletError::KeychainAccessFailed)
+        }
+
+        fn load(&self, _wallet_id: &WalletId) -> Result<RecoveryPhrase, WalletError> {
+            RecoveryPhrase::import(self.phrase)
+        }
+
+        fn delete(&self, _wallet_id: &WalletId) -> Result<(), WalletError> {
+            Ok(())
+        }
+    }
+
+    fn receive_account_for_phrase(phrase: &str) -> BitcoinReceiveAccount {
+        let phrase = RecoveryPhrase::import(phrase).expect("test phrase should be valid");
+        let seed = phrase.derive_seed();
+        let account = derive_bitcoin_bip84_account(&seed, Network::Testnet)
+            .expect("test account should derive");
+
+        BitcoinReceiveAccount::new(account)
+    }
+
     #[test]
     fn setup_stores_the_phrase_and_persists_only_public_metadata() {
         let vault = RecordingVault {
@@ -154,5 +190,51 @@ mod tests {
         assert!(path.is_file());
         assert!(address.encoded().starts_with("tb1q"));
         assert_eq!(wallet.next_receive_index(), 1);
+    }
+
+    #[test]
+    fn recovery_succeeds_when_phrase_matches_public_metadata() {
+        let directory = tempfile::tempdir().expect("temporary directory should create");
+        let path = directory.path().join("wallet-metadata.json");
+        let wallet_id = WalletId::new("recovery-test-wallet").expect("wallet id should be valid");
+
+        PersistentBitcoinReceiveAccount::create(
+            path.clone(),
+            receive_account_for_phrase(FIRST_TEST_PHRASE),
+        )
+        .expect("metadata should save");
+
+        let vault = FixedRecoveryVault {
+            phrase: FIRST_TEST_PHRASE,
+        };
+
+        let restored = restore_testnet_wallet_with_vault(wallet_id, path, &vault)
+            .expect("matching recovery phrase should restore the wallet");
+
+        assert_eq!(restored.next_receive_index(), 0);
+    }
+
+    #[test]
+    fn recovery_rejects_phrase_that_does_not_match_public_metadata() {
+        let directory = tempfile::tempdir().expect("temporary directory should create");
+        let path = directory.path().join("wallet-metadata.json");
+        let wallet_id = WalletId::new("mismatch-test-wallet").expect("wallet id should be valid");
+
+        PersistentBitcoinReceiveAccount::create(
+            path.clone(),
+            receive_account_for_phrase(FIRST_TEST_PHRASE),
+        )
+        .expect("metadata should save");
+
+        let vault = FixedRecoveryVault {
+            phrase: SECOND_TEST_PHRASE,
+        };
+
+        let result = restore_testnet_wallet_with_vault(wallet_id, path, &vault);
+
+        assert!(matches!(
+            result,
+            Err(WalletError::RecoveryPhraseDoesNotMatchMetadata)
+        ));
     }
 }
