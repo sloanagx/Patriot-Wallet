@@ -12,6 +12,7 @@ mod bdk;
 mod bitcoin;
 mod dogecoin;
 mod ethereum;
+mod ethereum_storage;
 mod hd;
 mod mnemonic;
 mod monero;
@@ -31,7 +32,12 @@ pub use mnemonic::{RecoveryPhrase, SeedMaterial};
 pub use monero::MoneroAddressValidator;
 pub use money::BitcoinAmount;
 pub const PRODUCT_NAME: &str = "Patriot Wallet";
-pub use ethereum::EthereumAddressValidator;
+pub use ethereum::{
+    EthereumAccountXpub, EthereumAddressValidator, EthereumReceiveAccount,
+    EthereumReceiveAccountMetadata, EthereumReceiveAddress, derive_ethereum_bip44_account,
+    derive_ethereum_bip44_receive_address,
+};
+pub use ethereum_storage::PersistentEthereumReceiveAccount;
 pub use hd::{BitcoinAccountXpub, BitcoinReceiveAddress, derive_bitcoin_bip84_account};
 pub use send::BitcoinSendIntent;
 pub use setup::{TestnetWallet, create_testnet_wallet, restore_testnet_wallet};

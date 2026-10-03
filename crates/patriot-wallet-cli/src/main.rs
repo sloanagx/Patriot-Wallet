@@ -4,6 +4,7 @@ use patriot_wallet_core::{
     Asset, AssetId, BitcoinEsploraEndpoint, Blockchain, DogecoinAddressValidator,
     EthereumAddressValidator, MoneroAddressValidator, Network, PersistentBitcoinReceiveAccount,
     RecipientAddress, SolanaAddressValidator, WalletId, create_testnet_wallet,
+    restore_testnet_wallet,
 };
 
 fn main() -> ExitCode {
@@ -25,6 +26,7 @@ fn run() -> Result<(), String> {
         "validate-dogecoin-address" => validate_dogecoin_address(arguments),
         "validate-monero-address" => validate_monero_address(arguments),
         "validate-solana-address" => validate_solana_address(arguments),
+        "verify-testnet-wallet" => verify_testnet_wallet(arguments),
         "new-receive-address" => new_receive_address(arguments),
         "create-testnet" => create_testnet(arguments),
         "testnet-balance" => testnet_balance(arguments),
@@ -183,6 +185,28 @@ fn testnet_balance(mut arguments: impl Iterator<Item = String>) -> Result<(), St
     Ok(())
 }
 
+fn verify_testnet_wallet(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
+    let wallet_id = arguments.next().ok_or_else(usage)?;
+    let metadata_path = arguments.next().ok_or_else(usage)?;
+
+    if arguments.next().is_some() {
+        return Err(usage());
+    }
+
+    let wallet_id = WalletId::new(wallet_id).map_err(|error| format!("{error:?}"))?;
+
+    let wallet = restore_testnet_wallet(wallet_id, PathBuf::from(metadata_path))
+        .map_err(|error| format!("{error:?}"))?;
+
+    println!("Wallet recovery verification passed.");
+    println!("Wallet ID: {}", wallet.wallet_id().as_str());
+    println!(
+        "Next receive-address index: {}",
+        wallet.next_receive_index()
+    );
+    Ok(())
+}
+
 fn wallet_info(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
     let metadata_path = arguments.next().ok_or_else(usage)?;
 
@@ -207,6 +231,6 @@ fn wallet_info(mut arguments: impl Iterator<Item = String>) -> Result<(), String
 }
 
 fn usage() -> String {
-    "Usage:\n  patriot-wallet-cli create-testnet <wallet-id> <metadata-path>\n  patriot-wallet-cli wallet-info <metadata-path>\n  patriot-wallet-cli new-receive-address <metadata-path>\n  patriot-wallet-cli testnet-balance <metadata-path>\n  patriot-wallet-cli validate-ethereum-address <address>\n  patriot-wallet-cli validate-solana-address <address>\n  patriot-wallet-cli validate-dogecoin-address <address>\n  patriot-wallet-cli validate-monero-address <address>"
+    "Usage:\n  patriot-wallet-cli create-testnet <wallet-id> <metadata-path>\n  patriot-wallet-cli wallet-info <metadata-path>\n  patriot-wallet-cli new-receive-address <metadata-path>\n  patriot-wallet-cli testnet-balance <metadata-path>\n  patriot-wallet-cli validate-ethereum-address <address>\n  patriot-wallet-cli validate-solana-address <address>\n  patriot-wallet-cli validate-dogecoin-address <address>\n  patriot-wallet-cli validate-monero-address <address>\n  patriot-wallet-cli verify-testnet-wallet <wallet-id> <metadata-path>"
         .to_string()
 }
