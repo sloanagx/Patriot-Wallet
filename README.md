@@ -6,15 +6,14 @@ Patriot Wallet is a secure, cross-platform cryptocurrency wallet for Windows and
 
 - Bitcoin (BTC)
 - Ethereum (ETH)
-- Dogecoin (DOGE) [COMING SOON]
+- Dogecoin (DOGE) 
 - Solana (SOL)
 - Tether (USDT)
 - USD Coin (USDC)
-- Monero (XMR) [COMING SOON]
 
 ## Features
 
-- Native support for Bitcoin, Ethereum, Dogecoin, Solana, Tether, USD Coin, and Monero
+- Native support for Bitcoin, Ethereum, Dogecoin, Solana, Tether, and USD Coin
 - Easy wallet setup and recovery
 - Secure key storage on Windows and macOS
 - Transaction history and balance tracking

@@ -16,7 +16,6 @@ mod ethereum;
 mod ethereum_storage;
 mod hd;
 mod mnemonic;
-mod monero;
 mod money;
 mod send;
 mod setup;
@@ -35,7 +34,6 @@ pub use dogecoin::{
 };
 pub use dogecoin_storage::PersistentDogecoinReceiveAccount;
 pub use mnemonic::{RecoveryPhrase, SeedMaterial};
-pub use monero::MoneroAddressValidator;
 pub use money::BitcoinAmount;
 pub const PRODUCT_NAME: &str = "Patriot Wallet";
 pub use ethereum::{
@@ -77,7 +75,6 @@ pub enum Blockchain {
     Ethereum,
     Solana,
     Dogecoin,
-    Monero,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -88,7 +85,6 @@ pub enum Asset {
     Dogecoin,
     TetherUsd,
     UsdCoin,
-    Monero,
 }
 
 impl Asset {
@@ -100,7 +96,6 @@ impl Asset {
             Self::Dogecoin => "DOGE",
             Self::TetherUsd => "USDT",
             Self::UsdCoin => "USDC",
-            Self::Monero => "XMR",
         }
     }
 
@@ -111,7 +106,6 @@ impl Asset {
                 | (Self::Ethereum, Blockchain::Ethereum)
                 | (Self::Solana, Blockchain::Solana)
                 | (Self::Dogecoin, Blockchain::Dogecoin)
-                | (Self::Monero, Blockchain::Monero)
                 | (Self::TetherUsd, Blockchain::Ethereum | Blockchain::Solana)
                 | (Self::UsdCoin, Blockchain::Ethereum | Blockchain::Solana)
         )
@@ -190,7 +184,6 @@ mod tests {
         assert_eq!(Asset::Dogecoin.ticker(), "DOGE");
         assert_eq!(Asset::TetherUsd.ticker(), "USDT");
         assert_eq!(Asset::UsdCoin.ticker(), "USDC");
-        assert_eq!(Asset::Monero.ticker(), "XMR");
     }
 
     #[test]

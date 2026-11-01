@@ -2,7 +2,7 @@ use std::{env, path::PathBuf, process::ExitCode};
 
 use patriot_wallet_core::{
     Asset, AssetId, BitcoinEsploraEndpoint, Blockchain, DogecoinAddressValidator,
-    EthereumAddressValidator, MoneroAddressValidator, Network, PersistentBitcoinReceiveAccount,
+    EthereumAddressValidator, Network, PersistentBitcoinReceiveAccount,
     PersistentDogecoinReceiveAccount, PersistentEthereumReceiveAccount, RecipientAddress,
     SolanaAddressValidator, WalletId, create_testnet_dogecoin_receive_account,
     create_testnet_ethereum_receive_account, create_testnet_solana_receive_account,
@@ -26,7 +26,6 @@ fn run() -> Result<(), String> {
     match command.as_str() {
         "validate-ethereum-address" => validate_ethereum_address(arguments),
         "validate-dogecoin-address" => validate_dogecoin_address(arguments),
-        "validate-monero-address" => validate_monero_address(arguments),
         "new-ethereum-receive-address" => new_ethereum_receive_address(arguments),
         "validate-solana-address" => validate_solana_address(arguments),
         "verify-testnet-wallet" => verify_testnet_wallet(arguments),
@@ -278,24 +277,6 @@ fn validate_dogecoin_address(mut arguments: impl Iterator<Item = String>) -> Res
     Ok(())
 }
 
-fn validate_monero_address(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
-    let address = arguments.next().ok_or_else(usage)?;
-
-    if arguments.next().is_some() {
-        return Err(usage());
-    }
-
-    let asset =
-        AssetId::new(Asset::Monero, Blockchain::Monero).map_err(|error| format!("{error:?}"))?;
-
-    let recipient =
-        RecipientAddress::parse(asset, Network::Testnet, address, &MoneroAddressValidator)
-            .map_err(|error| format!("{error:?}"))?;
-
-    println!("Valid Monero testnet address: {}", recipient.as_str());
-    Ok(())
-}
-
 fn testnet_balance(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
     let metadata_path = arguments.next().ok_or_else(usage)?;
 
@@ -376,6 +357,6 @@ fn wallet_info(mut arguments: impl Iterator<Item = String>) -> Result<(), String
 }
 
 fn usage() -> String {
-    "Usage:\n  patriot-wallet-cli create-testnet <wallet-id> <metadata-path>\n  patriot-wallet-cli create-ethereum-testnet-account <wallet-id> <metadata-path>\n  patriot-wallet-cli create-solana-testnet-account <wallet-id> <metadata-path>\n  patriot-wallet-cli create-dogecoin-testnet-account <wallet-id> <metadata-path>\n  patriot-wallet-cli wallet-info <metadata-path>\n  patriot-wallet-cli new-receive-address <metadata-path>\n  patriot-wallet-cli new-ethereum-receive-address <metadata-path>\n  patriot-wallet-cli new-solana-receive-address <wallet-id> <metadata-path>\n  patriot-wallet-cli new-dogecoin-receive-address <metadata-path>\n  patriot-wallet-cli testnet-balance <metadata-path>\n  patriot-wallet-cli validate-ethereum-address <address>\n  patriot-wallet-cli validate-solana-address <address>\n  patriot-wallet-cli validate-dogecoin-address <address>\n  patriot-wallet-cli validate-monero-address <address>\n  patriot-wallet-cli verify-testnet-wallet <wallet-id> <metadata-path>"
+    "Usage:\n  patriot-wallet-cli create-testnet <wallet-id> <metadata-path>\n  patriot-wallet-cli create-ethereum-testnet-account <wallet-id> <metadata-path>\n  patriot-wallet-cli create-solana-testnet-account <wallet-id> <metadata-path>\n  patriot-wallet-cli create-dogecoin-testnet-account <wallet-id> <metadata-path>\n  patriot-wallet-cli wallet-info <metadata-path>\n  patriot-wallet-cli new-receive-address <metadata-path>\n  patriot-wallet-cli new-ethereum-receive-address <metadata-path>\n  patriot-wallet-cli new-solana-receive-address <wallet-id> <metadata-path>\n  patriot-wallet-cli new-dogecoin-receive-address <metadata-path>\n  patriot-wallet-cli testnet-balance <metadata-path>\n  patriot-wallet-cli validate-ethereum-address <address>\n  patriot-wallet-cli validate-solana-address <address>\n  patriot-wallet-cli validate-dogecoin-address <address>\n  patriot-wallet-cli verify-testnet-wallet <wallet-id> <metadata-path>"
         .to_string()
 }
