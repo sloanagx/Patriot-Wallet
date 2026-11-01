@@ -129,6 +129,7 @@ pub enum WalletError {
     MnemonicGenerationFailed,
     KeyDerivationFailed,
     ReceiveAddressIndexExhausted,
+    NoReceiveAddressIssued,
     InvalidWatchOnlyAccount,
     WatchOnlyAccountNetworkMismatch,
     UnsupportedMetadataVersion,
@@ -190,6 +191,31 @@ mod tests {
     fn usdt_is_supported_on_ethereum_and_solana() {
         assert!(AssetId::new(Asset::TetherUsd, Blockchain::Ethereum).is_ok());
         assert!(AssetId::new(Asset::TetherUsd, Blockchain::Solana).is_ok());
+    }
+
+    #[test]
+    fn usdc_is_supported_on_ethereum_and_solana() {
+        assert!(AssetId::new(Asset::UsdCoin, Blockchain::Ethereum).is_ok());
+        assert!(AssetId::new(Asset::UsdCoin, Blockchain::Solana).is_ok());
+    }
+
+    #[test]
+    fn stablecoins_are_rejected_on_unrelated_chains() {
+        assert_eq!(
+            AssetId::new(Asset::TetherUsd, Blockchain::Dogecoin),
+            Err(WalletError::UnsupportedAssetOnChain {
+                asset: Asset::TetherUsd,
+                chain: Blockchain::Dogecoin,
+            })
+        );
+
+        assert_eq!(
+            AssetId::new(Asset::UsdCoin, Blockchain::Bitcoin),
+            Err(WalletError::UnsupportedAssetOnChain {
+                asset: Asset::UsdCoin,
+                chain: Blockchain::Bitcoin,
+            })
+        );
     }
 
     #[test]

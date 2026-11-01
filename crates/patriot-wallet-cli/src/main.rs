@@ -35,6 +35,7 @@ fn run() -> Result<(), String> {
         "create-ethereum-testnet-account" => create_ethereum_testnet_account(arguments),
         "create-solana-testnet-account" => create_solana_testnet_account(arguments),
         "new-solana-receive-address" => new_solana_receive_address(arguments),
+        "ethereum-token-receive-address" => ethereum_token_receive_address(arguments),
         "create-testnet" => create_testnet(arguments),
         "testnet-balance" => testnet_balance(arguments),
         "wallet-info" => wallet_info(arguments),
@@ -223,6 +224,41 @@ fn new_ethereum_receive_address(mut arguments: impl Iterator<Item = String>) -> 
     Ok(())
 }
 
+fn ethereum_token_receive_address(
+    mut arguments: impl Iterator<Item = String>,
+) -> Result<(), String> {
+    let token = arguments.next().ok_or_else(usage)?;
+    let metadata_path = arguments.next().ok_or_else(usage)?;
+
+    if arguments.next().is_some() {
+        return Err(usage());
+    }
+
+    let token = match token.as_str() {
+        "usdt" => Asset::TetherUsd,
+        "usdc" => Asset::UsdCoin,
+        _ => return Err("Token must be usdt or usdc.".to_string()),
+    };
+
+    let asset = AssetId::new(token, Blockchain::Ethereum).map_err(|error| format!("{error:?}"))?;
+
+    let account = PersistentEthereumReceiveAccount::load(PathBuf::from(metadata_path))
+        .map_err(|error| format!("{error:?}"))?;
+
+    let address = account
+        .last_issued_receive_address()
+        .map_err(|error| format!("{error:?}"))?;
+
+    println!(
+        "{} on Ethereum testnet receive address: {}",
+        asset.asset.ticker(),
+        address.encoded()
+    );
+    println!("Address index: {}", address.index());
+    println!("This is the same account address used for ETH.");
+    Ok(())
+}
+
 fn validate_ethereum_address(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
     let address = arguments.next().ok_or_else(usage)?;
 
@@ -357,6 +393,6 @@ fn wallet_info(mut arguments: impl Iterator<Item = String>) -> Result<(), String
 }
 
 fn usage() -> String {
-    "Usage:\n  patriot-wallet-cli create-testnet <wallet-id> <metadata-path>\n  patriot-wallet-cli create-ethereum-testnet-account <wallet-id> <metadata-path>\n  patriot-wallet-cli create-solana-testnet-account <wallet-id> <metadata-path>\n  patriot-wallet-cli create-dogecoin-testnet-account <wallet-id> <metadata-path>\n  patriot-wallet-cli wallet-info <metadata-path>\n  patriot-wallet-cli new-receive-address <metadata-path>\n  patriot-wallet-cli new-ethereum-receive-address <metadata-path>\n  patriot-wallet-cli new-solana-receive-address <wallet-id> <metadata-path>\n  patriot-wallet-cli new-dogecoin-receive-address <metadata-path>\n  patriot-wallet-cli testnet-balance <metadata-path>\n  patriot-wallet-cli validate-ethereum-address <address>\n  patriot-wallet-cli validate-solana-address <address>\n  patriot-wallet-cli validate-dogecoin-address <address>\n  patriot-wallet-cli verify-testnet-wallet <wallet-id> <metadata-path>"
+    "Usage:\n  patriot-wallet-cli create-testnet <wallet-id> <metadata-path>\n  patriot-wallet-cli create-ethereum-testnet-account <wallet-id> <metadata-path>\n  patriot-wallet-cli create-solana-testnet-account <wallet-id> <metadata-path>\n  patriot-wallet-cli create-dogecoin-testnet-account <wallet-id> <metadata-path>\n  patriot-wallet-cli wallet-info <metadata-path>\n  patriot-wallet-cli new-receive-address <metadata-path>\n  patriot-wallet-cli new-ethereum-receive-address <metadata-path>\n patriot-wallet-cli ethereum-token-receive-address <usdt|usdc> <metadata-path>\n  patriot-wallet-cli new-solana-receive-address <wallet-id> <metadata-path>\n  patriot-wallet-cli new-dogecoin-receive-address <metadata-path>\n  patriot-wallet-cli testnet-balance <metadata-path>\n  patriot-wallet-cli validate-ethereum-address <address>\n  patriot-wallet-cli validate-solana-address <address>\n  patriot-wallet-cli validate-dogecoin-address <address>\n  patriot-wallet-cli verify-testnet-wallet <wallet-id> <metadata-path>"
         .to_string()
 }

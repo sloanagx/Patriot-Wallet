@@ -121,6 +121,15 @@ impl EthereumReceiveAccount {
         })
     }
 
+    pub fn last_issued_receive_address(&self) -> Result<EthereumReceiveAddress, WalletError> {
+        let index = self
+            .next_receive_index
+            .checked_sub(1)
+            .ok_or(WalletError::NoReceiveAddressIssued)?;
+
+        self.account.receive_address_at(index)
+    }
+
     pub fn issue_next_receive_address(&mut self) -> Result<EthereumReceiveAddress, WalletError> {
         let index = self.next_receive_index;
 
@@ -327,5 +336,17 @@ mod tests {
             EthereumAddressValidator.validate(ethereum_asset(), Network::Testnet, "0x1234");
 
         assert_eq!(result, Err(WalletError::InvalidAddress));
+    }
+
+    #[test]
+    fn last_issued_address_requires_an_issued_address() {
+        let phrase = RecoveryPhrase::generate_24().expect("recovery phrase should generate");
+        let seed = phrase.derive_seed();
+        let account = derive_ethereum_bip44_account(&seed).expect("Ethereum account should derive");
+        let receive_account = EthereumReceiveAccount::new(account);
+
+        let result = receive_account.last_issued_receive_address();
+
+        assert!(matches!(result, Err(WalletError::NoReceiveAddressIssued)));
     }
 }

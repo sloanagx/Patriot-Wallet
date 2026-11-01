@@ -81,6 +81,10 @@ impl PersistentEthereumReceiveAccount {
         self.account.next_receive_index()
     }
 
+    pub fn last_issued_receive_address(&self) -> Result<EthereumReceiveAddress, WalletError> {
+        self.account.last_issued_receive_address()
+    }
+
     pub fn issue_next_receive_address(&mut self) -> Result<EthereumReceiveAddress, WalletError> {
         let address = self.account.issue_next_receive_address()?;
         self.store.save(&self.account)?;
@@ -144,5 +148,26 @@ mod tests {
         let result = PersistentEthereumReceiveAccount::load(path);
 
         assert!(matches!(result, Err(WalletError::InvalidStoredMetadata)));
+    }
+
+    #[test]
+    fn reading_the_last_issued_address_does_not_advance_the_index() {
+        let directory = tempfile::tempdir().expect("temporary directory should create");
+        let path = directory.path().join("ethereum-receive-account.json");
+
+        let mut stored = PersistentEthereumReceiveAccount::create(path, testnet_account())
+            .expect("initial metadata should save");
+
+        let issued = stored
+            .issue_next_receive_address()
+            .expect("first address should issue");
+
+        let displayed = stored
+            .last_issued_receive_address()
+            .expect("issued address should be readable");
+
+        assert_eq!(displayed.index(), issued.index());
+        assert_eq!(displayed.encoded(), issued.encoded());
+        assert_eq!(stored.next_receive_index(), 1);
     }
 }
