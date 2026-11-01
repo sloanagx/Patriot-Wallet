@@ -92,3 +92,57 @@ impl PersistentEthereumReceiveAccount {
         &self.store.path
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use super::*;
+    use crate::{RecoveryPhrase, derive_ethereum_bip44_account};
+
+    fn testnet_account() -> EthereumReceiveAccount {
+        let phrase = RecoveryPhrase::generate_24().expect("recovery phrase should generate");
+        let seed = phrase.derive_seed();
+        let account = derive_ethereum_bip44_account(&seed).expect("Ethereum account should derive");
+
+        EthereumReceiveAccount::new(account)
+    }
+
+    #[test]
+    fn stored_account_resumes_at_the_next_unused_address_index() {
+        let directory = tempfile::tempdir().expect("temporary directory should create");
+        let path = directory.path().join("ethereum-receive-account.json");
+
+        let mut stored = PersistentEthereumReceiveAccount::create(path.clone(), testnet_account())
+            .expect("initial metadata should save");
+
+        stored
+            .issue_next_receive_address()
+            .expect("first address should issue");
+        stored
+            .issue_next_receive_address()
+            .expect("second address should issue");
+
+        let mut restored =
+            PersistentEthereumReceiveAccount::load(path).expect("stored metadata should load");
+
+        let next = restored
+            .issue_next_receive_address()
+            .expect("third address should issue");
+
+        assert_eq!(next.index(), 2);
+        assert_eq!(restored.next_receive_index(), 3);
+    }
+
+    #[test]
+    fn malformed_stored_metadata_is_rejected() {
+        let directory = tempfile::tempdir().expect("temporary directory should create");
+        let path = directory.path().join("ethereum-receive-account.json");
+
+        fs::write(&path, b"not valid JSON").expect("test metadata should write");
+
+        let result = PersistentEthereumReceiveAccount::load(path);
+
+        assert!(matches!(result, Err(WalletError::InvalidStoredMetadata)));
+    }
+}

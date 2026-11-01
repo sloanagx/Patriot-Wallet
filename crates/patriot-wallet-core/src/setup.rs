@@ -2,9 +2,12 @@ use std::path::PathBuf;
 
 use crate::Network;
 use crate::{
-    BitcoinReceiveAccount, BitcoinReceiveAddress, OsKeychainRecoveryVault,
-    PersistentBitcoinReceiveAccount, RecoveryPhrase, RecoveryPhraseVault, WalletError, WalletId,
-    derive_bitcoin_bip84_account,
+    BitcoinReceiveAccount, BitcoinReceiveAddress, DogecoinReceiveAccount, EthereumReceiveAccount,
+    OsKeychainRecoveryVault, PersistentBitcoinReceiveAccount, PersistentDogecoinReceiveAccount,
+    PersistentEthereumReceiveAccount, PersistentSolanaReceiveAccount, RecoveryPhrase,
+    RecoveryPhraseVault, SolanaReceiveAccount, SolanaReceiveAddress, WalletError, WalletId,
+    derive_bitcoin_bip84_account, derive_dogecoin_bip44_account, derive_ethereum_bip44_account,
+    derive_solana_bip44_account_address,
 };
 
 /// A newly created or restored testnet wallet session.
@@ -47,6 +50,72 @@ pub fn restore_testnet_wallet(
     metadata_path: impl Into<PathBuf>,
 ) -> Result<TestnetWallet, WalletError> {
     restore_testnet_wallet_with_vault(wallet_id, metadata_path, &OsKeychainRecoveryVault)
+}
+
+/// Creates a testnet Ethereum receive account from a Keychain recovery phrase.
+///
+/// The resulting metadata file contains only the public Ethereum account key.
+pub fn create_testnet_ethereum_receive_account(
+    wallet_id: WalletId,
+    metadata_path: impl Into<PathBuf>,
+) -> Result<PersistentEthereumReceiveAccount, WalletError> {
+    create_testnet_ethereum_receive_account_with_vault(
+        wallet_id,
+        metadata_path,
+        &OsKeychainRecoveryVault,
+    )
+}
+
+/// Creates a testnet Dogecoin receive account from a Keychain recovery phrase.
+///
+/// The resulting metadata file contains only the public Dogecoin account key.
+pub fn create_testnet_dogecoin_receive_account(
+    wallet_id: WalletId,
+    metadata_path: impl Into<PathBuf>,
+) -> Result<PersistentDogecoinReceiveAccount, WalletError> {
+    create_testnet_dogecoin_receive_account_with_vault(
+        wallet_id,
+        metadata_path,
+        &OsKeychainRecoveryVault,
+    )
+}
+
+fn create_testnet_dogecoin_receive_account_with_vault(
+    wallet_id: WalletId,
+    metadata_path: impl Into<PathBuf>,
+    vault: &impl RecoveryPhraseVault,
+) -> Result<PersistentDogecoinReceiveAccount, WalletError> {
+    let metadata_path = metadata_path.into();
+
+    if metadata_path.exists() {
+        return Err(WalletError::MetadataAlreadyExists);
+    }
+
+    let phrase = vault.load(&wallet_id)?;
+    let seed = phrase.derive_seed();
+    let account = derive_dogecoin_bip44_account(&seed, Network::Testnet)?;
+    let receive_account = DogecoinReceiveAccount::new(account);
+
+    PersistentDogecoinReceiveAccount::create(metadata_path, receive_account)
+}
+
+fn create_testnet_ethereum_receive_account_with_vault(
+    wallet_id: WalletId,
+    metadata_path: impl Into<PathBuf>,
+    vault: &impl RecoveryPhraseVault,
+) -> Result<PersistentEthereumReceiveAccount, WalletError> {
+    let metadata_path = metadata_path.into();
+
+    if metadata_path.exists() {
+        return Err(WalletError::MetadataAlreadyExists);
+    }
+
+    let phrase = vault.load(&wallet_id)?;
+    let seed = phrase.derive_seed();
+    let account = derive_ethereum_bip44_account(&seed)?;
+    let receive_account = EthereumReceiveAccount::new(account);
+
+    PersistentEthereumReceiveAccount::create(metadata_path, receive_account)
 }
 
 fn restore_testnet_wallet_with_vault(
@@ -237,4 +306,147 @@ mod tests {
             Err(WalletError::RecoveryPhraseDoesNotMatchMetadata)
         ));
     }
+
+    #[test]
+    fn ethereum_setup_derives_and_persists_a_public_receive_account() {
+        let directory = tempfile::tempdir().expect("temporary directory should create");
+        let path = directory.path().join("ethereum-metadata.json");
+        let wallet_id = WalletId::new("ethereum-test-wallet").expect("wallet id should be valid");
+        let vault = FixedRecoveryVault {
+            phrase: FIRST_TEST_PHRASE,
+        };
+
+        let mut account =
+            create_testnet_ethereum_receive_account_with_vault(wallet_id, path.clone(), &vault)
+                .expect("Ethereum account should create");
+
+        let address = account
+            .issue_next_receive_address()
+            .expect("Ethereum address should issue");
+
+        let stored = std::fs::read_to_string(&path).expect("metadata should be readable");
+
+        assert!(path.is_file());
+        assert!(address.encoded().starts_with("0x"));
+        assert_eq!(address.index(), 0);
+        assert_eq!(account.next_receive_index(), 1);
+        assert!(!stored.contains(FIRST_TEST_PHRASE));
+    }
+
+    #[test]
+    fn solana_setup_persists_hardened_receive_addresses() {
+        let directory = tempfile::tempdir().expect("temporary directory should create");
+        let path = directory.path().join("solana-metadata.json");
+        let wallet_id = WalletId::new("solana-test-wallet").expect("wallet id should be valid");
+        let vault = FixedRecoveryVault {
+            phrase: FIRST_TEST_PHRASE,
+        };
+
+        let first = create_testnet_solana_receive_account_with_vault(
+            wallet_id.clone(),
+            path.clone(),
+            &vault,
+        )
+        .expect("first Solana address should create");
+
+        let second =
+            issue_next_testnet_solana_receive_address_with_vault(wallet_id, path.clone(), &vault)
+                .expect("second Solana address should issue");
+
+        let restored = PersistentSolanaReceiveAccount::load(path).expect("metadata should restore");
+
+        assert_eq!(first.account_index(), 0);
+        assert_eq!(second.account_index(), 1);
+        assert_ne!(first.encoded(), second.encoded());
+        assert_eq!(restored.next_account_index(), 2);
+    }
+
+    #[test]
+    fn dogecoin_setup_derives_and_persists_a_public_receive_account() {
+        let directory = tempfile::tempdir().expect("temporary directory should create");
+        let path = directory.path().join("dogecoin-metadata.json");
+        let wallet_id = WalletId::new("dogecoin-test-wallet").expect("wallet id should be valid");
+        let vault = FixedRecoveryVault {
+            phrase: FIRST_TEST_PHRASE,
+        };
+
+        let mut account =
+            create_testnet_dogecoin_receive_account_with_vault(wallet_id, path.clone(), &vault)
+                .expect("Dogecoin account should create");
+
+        let address = account
+            .issue_next_receive_address()
+            .expect("Dogecoin address should issue");
+
+        let stored = std::fs::read_to_string(&path).expect("metadata should be readable");
+
+        assert!(path.is_file());
+        assert_eq!(address.index(), 0);
+        assert_eq!(account.next_receive_index(), 1);
+        assert!(!stored.contains(FIRST_TEST_PHRASE));
+    }
+}
+
+/// Creates a Solana testnet receive account and allocates its first address.
+///
+/// Only public address metadata is written to disk.
+pub fn create_testnet_solana_receive_account(
+    wallet_id: WalletId,
+    metadata_path: impl Into<PathBuf>,
+) -> Result<SolanaReceiveAddress, WalletError> {
+    create_testnet_solana_receive_account_with_vault(
+        wallet_id,
+        metadata_path,
+        &OsKeychainRecoveryVault,
+    )
+}
+
+fn create_testnet_solana_receive_account_with_vault(
+    wallet_id: WalletId,
+    metadata_path: impl Into<PathBuf>,
+    vault: &impl RecoveryPhraseVault,
+) -> Result<SolanaReceiveAddress, WalletError> {
+    let metadata_path = metadata_path.into();
+
+    if metadata_path.exists() {
+        return Err(WalletError::MetadataAlreadyExists);
+    }
+
+    let phrase = vault.load(&wallet_id)?;
+    let seed = phrase.derive_seed();
+    let address = derive_solana_bip44_account_address(&seed, 0)?;
+
+    let mut account = SolanaReceiveAccount::new();
+    let first_address = account.record_next_receive_address(address)?;
+
+    PersistentSolanaReceiveAccount::create(metadata_path, account)?;
+
+    Ok(first_address)
+}
+
+/// Derives and persists the next Solana testnet receive address.
+pub fn issue_next_testnet_solana_receive_address(
+    wallet_id: WalletId,
+    metadata_path: impl Into<PathBuf>,
+) -> Result<SolanaReceiveAddress, WalletError> {
+    issue_next_testnet_solana_receive_address_with_vault(
+        wallet_id,
+        metadata_path,
+        &OsKeychainRecoveryVault,
+    )
+}
+
+fn issue_next_testnet_solana_receive_address_with_vault(
+    wallet_id: WalletId,
+    metadata_path: impl Into<PathBuf>,
+    vault: &impl RecoveryPhraseVault,
+) -> Result<SolanaReceiveAddress, WalletError> {
+    let mut account = PersistentSolanaReceiveAccount::load(metadata_path)?;
+    let account_index = account.next_account_index();
+
+    let phrase = vault.load(&wallet_id)?;
+    let seed = phrase.derive_seed();
+    let address = derive_solana_bip44_account_address(&seed, account_index)?;
+
+    account.record_next_receive_address(address)
 }

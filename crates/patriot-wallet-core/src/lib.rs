@@ -11,6 +11,7 @@ mod address;
 mod bdk;
 mod bitcoin;
 mod dogecoin;
+mod dogecoin_storage;
 mod ethereum;
 mod ethereum_storage;
 mod hd;
@@ -20,6 +21,7 @@ mod money;
 mod send;
 mod setup;
 mod solana;
+mod solana_storage;
 mod storage;
 mod vault;
 
@@ -27,7 +29,11 @@ pub use account::{BitcoinReceiveAccount, BitcoinReceiveAccountMetadata};
 pub use address::{AddressValidator, RecipientAddress};
 pub use bdk::{BdkBitcoinWatchOnlyWallet, BitcoinEsploraEndpoint};
 pub use bitcoin::BitcoinAddressValidator;
-pub use dogecoin::DogecoinAddressValidator;
+pub use dogecoin::{
+    DogecoinAccountXpub, DogecoinAddressValidator, DogecoinReceiveAccount,
+    DogecoinReceiveAccountMetadata, DogecoinReceiveAddress, derive_dogecoin_bip44_account,
+};
+pub use dogecoin_storage::PersistentDogecoinReceiveAccount;
 pub use mnemonic::{RecoveryPhrase, SeedMaterial};
 pub use monero::MoneroAddressValidator;
 pub use money::BitcoinAmount;
@@ -40,8 +46,16 @@ pub use ethereum::{
 pub use ethereum_storage::PersistentEthereumReceiveAccount;
 pub use hd::{BitcoinAccountXpub, BitcoinReceiveAddress, derive_bitcoin_bip84_account};
 pub use send::BitcoinSendIntent;
-pub use setup::{TestnetWallet, create_testnet_wallet, restore_testnet_wallet};
-pub use solana::SolanaAddressValidator;
+pub use setup::{
+    TestnetWallet, create_testnet_dogecoin_receive_account,
+    create_testnet_ethereum_receive_account, create_testnet_solana_receive_account,
+    create_testnet_wallet, issue_next_testnet_solana_receive_address, restore_testnet_wallet,
+};
+pub use solana::{
+    SolanaAddressValidator, SolanaReceiveAccount, SolanaReceiveAccountMetadata,
+    SolanaReceiveAddress, derive_solana_bip44_account_address,
+};
+pub use solana_storage::PersistentSolanaReceiveAccount;
 pub use storage::PersistentBitcoinReceiveAccount;
 pub use vault::{OsKeychainRecoveryVault, RecoveryPhraseVault, WalletId};
 
