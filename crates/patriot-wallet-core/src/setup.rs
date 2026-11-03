@@ -66,6 +66,40 @@ pub fn create_testnet_ethereum_receive_account(
     )
 }
 
+/// Verifies that the Keychain recovery phrase matches Ethereum public metadata.
+pub fn restore_testnet_ethereum_receive_account(
+    wallet_id: WalletId,
+    metadata_path: impl Into<PathBuf>,
+) -> Result<PersistentEthereumReceiveAccount, WalletError> {
+    restore_testnet_ethereum_receive_account_with_vault(
+        wallet_id,
+        metadata_path,
+        &OsKeychainRecoveryVault,
+    )
+}
+
+fn restore_testnet_ethereum_receive_account_with_vault(
+    wallet_id: WalletId,
+    metadata_path: impl Into<PathBuf>,
+    vault: &impl RecoveryPhraseVault,
+) -> Result<PersistentEthereumReceiveAccount, WalletError> {
+    let receive_account = PersistentEthereumReceiveAccount::load(metadata_path)?;
+
+    if receive_account.metadata().network != Network::Testnet {
+        return Err(WalletError::WalletNetworkMismatch);
+    }
+
+    let phrase = vault.load(&wallet_id)?;
+    let seed = phrase.derive_seed();
+    let expected_account = derive_ethereum_bip44_account(&seed)?;
+
+    if receive_account.metadata().account_xpub != expected_account.encoded() {
+        return Err(WalletError::RecoveryPhraseDoesNotMatchMetadata);
+    }
+
+    Ok(receive_account)
+}
+
 /// Creates a testnet Dogecoin receive account from a Keychain recovery phrase.
 ///
 /// The resulting metadata file contains only the public Dogecoin account key.
@@ -78,6 +112,40 @@ pub fn create_testnet_dogecoin_receive_account(
         metadata_path,
         &OsKeychainRecoveryVault,
     )
+}
+
+/// Verifies that the Keychain recovery phrase matches Dogecoin public metadata.
+pub fn restore_testnet_dogecoin_receive_account(
+    wallet_id: WalletId,
+    metadata_path: impl Into<PathBuf>,
+) -> Result<PersistentDogecoinReceiveAccount, WalletError> {
+    restore_testnet_dogecoin_receive_account_with_vault(
+        wallet_id,
+        metadata_path,
+        &OsKeychainRecoveryVault,
+    )
+}
+
+fn restore_testnet_dogecoin_receive_account_with_vault(
+    wallet_id: WalletId,
+    metadata_path: impl Into<PathBuf>,
+    vault: &impl RecoveryPhraseVault,
+) -> Result<PersistentDogecoinReceiveAccount, WalletError> {
+    let receive_account = PersistentDogecoinReceiveAccount::load(metadata_path)?;
+
+    if receive_account.metadata().network != Network::Testnet {
+        return Err(WalletError::WalletNetworkMismatch);
+    }
+
+    let phrase = vault.load(&wallet_id)?;
+    let seed = phrase.derive_seed();
+    let expected_account = derive_dogecoin_bip44_account(&seed, Network::Testnet)?;
+
+    if receive_account.metadata().account_xpub != expected_account.encoded() {
+        return Err(WalletError::RecoveryPhraseDoesNotMatchMetadata);
+    }
+
+    Ok(receive_account)
 }
 
 fn create_testnet_dogecoin_receive_account_with_vault(
@@ -240,6 +308,61 @@ mod tests {
         BitcoinReceiveAccount::new(account)
     }
 
+    fn ethereum_receive_account_for_phrase(phrase: &str) -> EthereumReceiveAccount {
+        let phrase = RecoveryPhrase::import(phrase).expect("test phrase should be valid");
+        let seed = phrase.derive_seed();
+        let account = derive_ethereum_bip44_account(&seed).expect("Ethereum account should derive");
+
+        EthereumReceiveAccount::new(account)
+    }
+
+    #[test]
+    fn ethereum_recovery_succeeds_when_phrase_matches_public_metadata() {
+        let directory = tempfile::tempdir().expect("temporary directory should create");
+        let path = directory.path().join("ethereum-metadata.json");
+        let wallet_id = WalletId::new("ethereum-recovery-test").expect("wallet id should be valid");
+
+        PersistentEthereumReceiveAccount::create(
+            path.clone(),
+            ethereum_receive_account_for_phrase(FIRST_TEST_PHRASE),
+        )
+        .expect("metadata should save");
+
+        let vault = FixedRecoveryVault {
+            phrase: FIRST_TEST_PHRASE,
+        };
+
+        let restored = restore_testnet_ethereum_receive_account_with_vault(wallet_id, path, &vault)
+            .expect("matching recovery phrase should restore Ethereum metadata");
+
+        assert_eq!(restored.next_receive_index(), 0);
+    }
+
+    #[test]
+    fn ethereum_recovery_rejects_phrase_that_does_not_match_public_metadata() {
+        let directory = tempfile::tempdir().expect("temporary directory should create");
+        let path = directory.path().join("ethereum-metadata.json");
+        let wallet_id =
+            WalletId::new("ethereum-recovery-mismatch").expect("wallet id should be valid");
+
+        PersistentEthereumReceiveAccount::create(
+            path.clone(),
+            ethereum_receive_account_for_phrase(FIRST_TEST_PHRASE),
+        )
+        .expect("metadata should save");
+
+        let vault = FixedRecoveryVault {
+            phrase: SECOND_TEST_PHRASE,
+        };
+
+        let result = restore_testnet_ethereum_receive_account_with_vault(wallet_id, path, &vault);
+
+        assert!(matches!(
+            result,
+            Err(WalletError::RecoveryPhraseDoesNotMatchMetadata)
+        ));
+    }
+
     #[test]
     fn setup_stores_the_phrase_and_persists_only_public_metadata() {
         let vault = RecordingVault {
@@ -385,6 +508,148 @@ mod tests {
         assert_eq!(account.next_receive_index(), 1);
         assert!(!stored.contains(FIRST_TEST_PHRASE));
     }
+
+    fn dogecoin_receive_account_for_phrase(phrase: &str) -> DogecoinReceiveAccount {
+        let phrase = RecoveryPhrase::import(phrase).expect("test phrase should be valid");
+        let seed = phrase.derive_seed();
+        let account = derive_dogecoin_bip44_account(&seed, Network::Testnet)
+            .expect("Dogecoin account should derive");
+
+        DogecoinReceiveAccount::new(account)
+    }
+
+    #[test]
+    fn dogecoin_recovery_succeeds_when_phrase_matches_public_metadata() {
+        let directory = tempfile::tempdir().expect("temporary directory should create");
+        let path = directory.path().join("dogecoin-metadata.json");
+        let wallet_id = WalletId::new("dogecoin-recovery-test").expect("wallet id should be valid");
+
+        PersistentDogecoinReceiveAccount::create(
+            path.clone(),
+            dogecoin_receive_account_for_phrase(FIRST_TEST_PHRASE),
+        )
+        .expect("metadata should save");
+
+        let vault = FixedRecoveryVault {
+            phrase: FIRST_TEST_PHRASE,
+        };
+
+        let restored = restore_testnet_dogecoin_receive_account_with_vault(wallet_id, path, &vault)
+            .expect("matching recovery phrase should restore Dogecoin metadata");
+
+        assert_eq!(restored.next_receive_index(), 0);
+    }
+
+    #[test]
+    fn dogecoin_recovery_rejects_phrase_that_does_not_match_public_metadata() {
+        let directory = tempfile::tempdir().expect("temporary directory should create");
+        let path = directory.path().join("dogecoin-metadata.json");
+        let wallet_id =
+            WalletId::new("dogecoin-recovery-mismatch").expect("wallet id should be valid");
+
+        PersistentDogecoinReceiveAccount::create(
+            path.clone(),
+            dogecoin_receive_account_for_phrase(FIRST_TEST_PHRASE),
+        )
+        .expect("metadata should save");
+
+        let vault = FixedRecoveryVault {
+            phrase: SECOND_TEST_PHRASE,
+        };
+
+        let result = restore_testnet_dogecoin_receive_account_with_vault(wallet_id, path, &vault);
+
+        assert!(matches!(
+            result,
+            Err(WalletError::RecoveryPhraseDoesNotMatchMetadata)
+        ));
+    }
+
+    #[test]
+    fn solana_recovery_succeeds_when_phrase_matches_public_metadata() {
+        let directory = tempfile::tempdir().expect("temporary directory should create");
+        let path = directory.path().join("solana-metadata.json");
+        let wallet_id = WalletId::new("solana-recovery-test").expect("wallet id should be valid");
+
+        PersistentSolanaReceiveAccount::create(
+            path.clone(),
+            solana_receive_account_for_phrase(FIRST_TEST_PHRASE),
+        )
+        .expect("metadata should save");
+
+        let vault = FixedRecoveryVault {
+            phrase: FIRST_TEST_PHRASE,
+        };
+
+        let restored = restore_testnet_solana_receive_account_with_vault(wallet_id, path, &vault)
+            .expect("matching recovery phrase should restore Solana metadata");
+
+        assert_eq!(restored.next_account_index(), 1);
+    }
+
+    #[test]
+    fn solana_recovery_rejects_phrase_that_does_not_match_public_metadata() {
+        let directory = tempfile::tempdir().expect("temporary directory should create");
+        let path = directory.path().join("solana-metadata.json");
+        let wallet_id =
+            WalletId::new("solana-recovery-mismatch").expect("wallet id should be valid");
+
+        PersistentSolanaReceiveAccount::create(
+            path.clone(),
+            solana_receive_account_for_phrase(FIRST_TEST_PHRASE),
+        )
+        .expect("metadata should save");
+
+        let vault = FixedRecoveryVault {
+            phrase: SECOND_TEST_PHRASE,
+        };
+
+        let result = restore_testnet_solana_receive_account_with_vault(wallet_id, path, &vault);
+
+        assert!(matches!(
+            result,
+            Err(WalletError::RecoveryPhraseDoesNotMatchMetadata)
+        ));
+    }
+}
+
+/// Verifies that the Keychain recovery phrase matches all saved Solana addresses.
+pub fn restore_testnet_solana_receive_account(
+    wallet_id: WalletId,
+    metadata_path: impl Into<PathBuf>,
+) -> Result<PersistentSolanaReceiveAccount, WalletError> {
+    restore_testnet_solana_receive_account_with_vault(
+        wallet_id,
+        metadata_path,
+        &OsKeychainRecoveryVault,
+    )
+}
+
+fn restore_testnet_solana_receive_account_with_vault(
+    wallet_id: WalletId,
+    metadata_path: impl Into<PathBuf>,
+    vault: &impl RecoveryPhraseVault,
+) -> Result<PersistentSolanaReceiveAccount, WalletError> {
+    let receive_account = PersistentSolanaReceiveAccount::load(metadata_path)?;
+    let metadata = receive_account.metadata();
+
+    if metadata.network != Network::Testnet {
+        return Err(WalletError::WalletNetworkMismatch);
+    }
+
+    let phrase = vault.load(&wallet_id)?;
+    let seed = phrase.derive_seed();
+
+    for (index, saved_address) in metadata.issued_addresses.iter().enumerate() {
+        let index = u32::try_from(index).map_err(|_| WalletError::InvalidStoredMetadata)?;
+        let expected_address = derive_solana_bip44_account_address(&seed, index)?;
+
+        if saved_address != &expected_address {
+            return Err(WalletError::RecoveryPhraseDoesNotMatchMetadata);
+        }
+    }
+
+    Ok(receive_account)
 }
 
 /// Creates a Solana testnet receive account and allocates its first address.
@@ -434,6 +699,20 @@ pub fn issue_next_testnet_solana_receive_address(
         metadata_path,
         &OsKeychainRecoveryVault,
     )
+}
+
+fn solana_receive_account_for_phrase(phrase: &str) -> SolanaReceiveAccount {
+    let phrase = RecoveryPhrase::import(phrase).expect("test phrase should be valid");
+    let seed = phrase.derive_seed();
+    let address =
+        derive_solana_bip44_account_address(&seed, 0).expect("Solana address should derive");
+
+    let mut account = SolanaReceiveAccount::new();
+    account
+        .record_next_receive_address(address)
+        .expect("Solana address should record");
+
+    account
 }
 
 fn issue_next_testnet_solana_receive_address_with_vault(

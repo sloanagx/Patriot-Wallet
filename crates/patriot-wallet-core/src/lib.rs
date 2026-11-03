@@ -47,7 +47,9 @@ pub use send::BitcoinSendIntent;
 pub use setup::{
     TestnetWallet, create_testnet_dogecoin_receive_account,
     create_testnet_ethereum_receive_account, create_testnet_solana_receive_account,
-    create_testnet_wallet, issue_next_testnet_solana_receive_address, restore_testnet_wallet,
+    create_testnet_wallet, issue_next_testnet_solana_receive_address,
+    restore_testnet_dogecoin_receive_account, restore_testnet_ethereum_receive_account,
+    restore_testnet_solana_receive_account, restore_testnet_wallet,
 };
 pub use solana::{
     SolanaAddressValidator, SolanaReceiveAccount, SolanaReceiveAccountMetadata,
