@@ -84,6 +84,13 @@ impl PersistentBitcoinReceiveAccount {
         self.account.watch_only_wallet()
     }
 
+    pub fn watch_only_wallet_with_state(
+        &self,
+        path: impl Into<PathBuf>,
+    ) -> Result<BdkBitcoinWatchOnlyWallet, WalletError> {
+        self.account.watch_only_wallet_with_state(path)
+    }
+
     pub const fn next_receive_index(&self) -> u32 {
         self.account.next_receive_index()
     }

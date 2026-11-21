@@ -39,6 +39,16 @@ impl BitcoinReceiveAccount {
         BdkBitcoinWatchOnlyWallet::from_bip84_account(&self.account)
     }
 
+    pub fn watch_only_wallet_with_state(
+        &self,
+        path: impl Into<std::path::PathBuf>,
+    ) -> Result<BdkBitcoinWatchOnlyWallet, WalletError> {
+        match BdkBitcoinWatchOnlyWallet::load_state(&self.account, path)? {
+            Some(wallet) => Ok(wallet),
+            None => self.watch_only_wallet(),
+        }
+    }
+
     pub fn metadata(&self) -> BitcoinReceiveAccountMetadata {
         BitcoinReceiveAccountMetadata {
             format_version: METADATA_FORMAT_VERSION,
@@ -157,5 +167,36 @@ mod tests {
             result,
             Err(WalletError::UnsupportedMetadataVersion)
         ));
+    }
+
+    #[test]
+    fn missing_state_creates_a_wallet_that_can_be_saved_and_reopened() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("state.json");
+        let account = testnet_account();
+
+        let mut wallet = account.watch_only_wallet_with_state(&path).unwrap();
+        let expected_address = wallet.receive_address_at(0);
+
+        wallet.save_state(&path).unwrap();
+
+        let reopened = account.watch_only_wallet_with_state(&path).unwrap();
+        assert_eq!(reopened.receive_address_at(0), expected_address);
+    }
+
+    #[test]
+    fn corrupt_state_is_not_silently_replaced_with_a_fresh_wallet() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("state.json");
+        let account = testnet_account();
+
+        std::fs::write(&path, b"damaged state").unwrap();
+
+        assert!(matches!(
+            account.watch_only_wallet_with_state(&path),
+            Err(WalletError::InvalidStoredWalletState)
+        ));
+
+        assert_eq!(std::fs::read(&path).unwrap(), b"damaged state");
     }
 }

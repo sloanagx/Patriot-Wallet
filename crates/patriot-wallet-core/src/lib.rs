@@ -10,6 +10,7 @@ mod account;
 mod address;
 mod bdk;
 mod bitcoin;
+mod bitcoin_state;
 mod dogecoin;
 mod dogecoin_storage;
 mod ethereum;
@@ -145,6 +146,10 @@ pub enum WalletError {
     RecipientNetworkMismatch,
     SendAmountMustBePositive,
     BdkWalletCreationFailed,
+    BdkWalletLoadFailed,
+    WalletStateSerializationFailed,
+    WalletStateStorageFailed,
+    InvalidStoredWalletState,
     InvalidEsploraEndpoint,
     EsploraNetworkMismatch,
     InvalidSyncConfiguration,

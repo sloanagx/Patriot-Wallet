@@ -319,21 +319,26 @@ fn validate_dogecoin_address(mut arguments: impl Iterator<Item = String>) -> Res
 }
 
 fn testnet_balance(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
-    let metadata_path = arguments.next().ok_or_else(usage)?;
+    let metadata_path = PathBuf::from(arguments.next().ok_or_else(usage)?);
 
     if arguments.next().is_some() {
         return Err(usage());
     }
 
-    let account = PersistentBitcoinReceiveAccount::load(PathBuf::from(metadata_path))
+    let account = PersistentBitcoinReceiveAccount::load(&metadata_path)
         .map_err(|error| format!("{error:?}"))?;
 
     if account.metadata().network != Network::Testnet {
         return Err("testnet-balance only accepts testnet metadata".to_string());
     }
 
+    // Append a suffix so the state file stays separate from account metadata.
+    let mut state_filename = metadata_path.as_os_str().to_os_string();
+    state_filename.push(".bitcoin-state.json");
+    let state_path = PathBuf::from(state_filename);
+
     let mut watch_only = account
-        .watch_only_wallet()
+        .watch_only_wallet_with_state(&state_path)
         .map_err(|error| format!("{error:?}"))?;
 
     let endpoint =
@@ -344,11 +349,16 @@ fn testnet_balance(mut arguments: impl Iterator<Item = String>) -> Result<(), St
         .full_scan(&endpoint, 20)
         .map_err(|error| format!("{error:?}"))?;
 
+    watch_only
+        .save_state(&state_path)
+        .map_err(|error| format!("Could not save Bitcoin state: {error:?}"))?;
+
     println!(
         "Bitcoin testnet balance: {} sats",
         watch_only.balance_sats()
     );
-    println!("This result is not stored locally.");
+    println!("Bitcoin state saved to: {}", state_path.display());
+
     Ok(())
 }
 
